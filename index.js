@@ -8,34 +8,30 @@ const absolutePath = path.join(__dirname, imageDir).concat("\\");
 
 // read image directory
 const readFiles = () => {
-  readDir(imageDir, (file) => {
+  fs.readdirSync(imageDir).map((file) => {
     const pathToCurrentFile = `${absolutePath}\\${file}`;
-    fs.stat(pathToCurrentFile, async (err, stats) => {
-      if (stats.isDirectory()) {
-        // read all files in dir
-        await readDir(pathToCurrentFile, (file) => {
-          // append dir to filename and read file stats
-          const pathToFile = `${pathToCurrentFile}\\${file}`;
-          return new Promise((resolve, reject) => {
-            fs.stat(pathToFile, async (err, stats) => {
-              if (err) {
-                throw err;
-              }
-              const newFileName = await createNewFileName(file, stats);
-              console.log("newFileName:", newFileName);
-              const pathToNewFile = `${pathToCurrentFile}\\${newFileName}`;
-              await rename(pathToFile, pathToNewFile);
-              resolve("done");
-            });
-          });
-        });
-      }
-    });
+    const stats = fs.statSync(pathToCurrentFile);
+    if (stats.isDirectory()) {
+      // read all files in dir
+      fs.readdirSync(pathToCurrentFile).map((file) => {
+        // append dir to filename and read file stats
+        const pathToFile = `${pathToCurrentFile}\\${file}`;
+
+        const newFileName = createNewFileName(
+          file,
+          pathToCurrentFile,
+          fs.statSync(pathToFile),
+        );
+        console.log("newFileName:", newFileName);
+
+        rename(pathToFile, newFileName);
+      });
+    }
   });
   console.timeEnd("startRenaming");
 };
 
-const createNewFileName = (file, stats) => {
+const createNewFileName = (file, pathToCurrentFile, stats) => {
   let year;
   let month;
   let day;
@@ -84,10 +80,13 @@ const createNewFileName = (file, stats) => {
     fileEnding = file.slice(-4);
   }
 
-  let newFileName = `${year}-${month}-${day} ${hours}.${minutes}.${seconds}.${fileEnding}`;
+  let newFileName = `${pathToCurrentFile}\\${year}-${month}-${day} ${hours}.${minutes}.${seconds}.${fileEnding}`;
 
-  console.log(fs.existsSync(newFileName));
-
+  let fileNbr = 1;
+  while (fs.existsSync(newFileName)) {
+    newFileName = `${pathToCurrentFile}\\${year}-${month}-${day} ${hours}.${minutes}.${seconds} (${fileNbr}).${fileEnding}`;
+    fileNbr++;
+  }
   return newFileName;
 };
 
@@ -96,24 +95,8 @@ const leadingZero = (nbr) => {
 };
 
 const rename = (oldPath, newPath) => {
-  return new Promise((resolve) => {
-    fs.rename(oldPath, newPath, (err) => {
-      if (err) {
-        throw err;
-      }
-      console.log(`File renamed from ${oldPath} to ${newPath} successfully!`);
-      resolve();
-    });
-  });
-};
-
-const readDir = (imageDir, callBack) => {
-  fs.readdir(imageDir, (err, files) => {
-    if (err) {
-      throw err;
-    }
-    return Promise.all(files.map(callBack));
-  });
+  fs.renameSync(oldPath, newPath);
+  console.log(`File renamed from ${oldPath} to ${newPath} successfully!`);
 };
 
 readFiles();
