@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const imageDir = process.argv[2];
 const reformatFileName = process.argv[3] || false;
+var count = 0;
 
 console.time("startRenaming");
 const absolutePath = path.join(__dirname, imageDir).concat("\\");
@@ -25,9 +26,11 @@ const readFiles = () => {
         console.log("newFileName:", newFileName);
 
         rename(pathToFile, newFileName);
+        count++;
       });
     }
   });
+  console.log(`Number of files changed ${count}`);
   console.timeEnd("startRenaming");
 };
 
