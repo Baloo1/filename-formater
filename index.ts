@@ -16,23 +16,26 @@ const readFiles = async () => {
 
     if (file == 'node_modules' || file == '.git') return;
     if (stats.isDirectory()) {
-      // read all files in dir
-      await Promise.all(fs.readdirSync(pathToCurrentFile).map(async (file) => {
-        const newFileName = await createNewFileName(pathToCurrentFile, file);
-        const pathToFile = filePath(pathToCurrentFile, file);
-
-        writeNewFileName(pathToFile, newFileName);
-        count++;
-      }));
+      const namesToWrite = await readFilesInDirectory(pathToCurrentFile);
+      namesToWrite.map(writeNewFileName);
+      count += namesToWrite.length;
     }
   }));
   console.log(`Number of files changed ${count}`);
   console.timeEnd("startRenaming");
 };
 
-const writeNewFileName = (oldPath, newPath) => {
-  fs.renameSync(oldPath, newPath);
-  console.log(`File renamed from ${oldPath} to ${newPath} successfully!`);
+const readFilesInDirectory = async (pathToCurrentFile) => {
+  return Promise.all(fs.readdirSync(pathToCurrentFile).map(async (file) => {
+    const newFileName = await createNewFileName(pathToCurrentFile, file);
+    const oldPath = filePath(pathToCurrentFile, file);
+    return { oldPath, newFileName }
+  }));
+}
+
+const writeNewFileName = ({ oldPath, newFileName }) => {
+  fs.renameSync(oldPath, newFileName);
+  console.log(`File renamed from ${oldPath} to ${newFileName} successfully!`);
 };
 
 const getDateFromEXIF = async (filePath) => {
