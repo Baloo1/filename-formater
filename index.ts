@@ -1,9 +1,9 @@
-const fs = require("fs");
-const path = require("path");
-var exifr = require('exifr')
+import fs = require("fs");
+import path = require("path");
+import exifr = require("exifr");
 const imageDir = process.argv[2];
 const formatMethod = process.argv[3] || false;
-var count = 0;
+let count = 0;
 
 console.time("startRenaming");
 const absolutePath = path.join(__dirname, "../", imageDir).concat("\\");
@@ -14,7 +14,7 @@ const readFiles = async () => {
     const pathToCurrentFile = `${absolutePath}${file}`;
     const stats = fs.statSync(pathToCurrentFile);
 
-    if (file == 'node_modules' || file == '.git') return;
+    if (file == "node_modules" || file == ".git") return;
     if (stats.isDirectory()) {
       const namesToWrite = await readFilesInDirectory(pathToCurrentFile);
       namesToWrite.map(writeNewFileName);
@@ -29,9 +29,9 @@ const readFilesInDirectory = async (pathToCurrentFile) => {
   return Promise.all(fs.readdirSync(pathToCurrentFile).map(async (file) => {
     const newFileName = await createNewFileName(pathToCurrentFile, file);
     const oldPath = filePath(pathToCurrentFile, file);
-    return { oldPath, newFileName }
+    return { oldPath, newFileName };
   }));
-}
+};
 
 const writeNewFileName = ({ oldPath, newFileName }) => {
   fs.renameSync(oldPath, newFileName);
@@ -39,13 +39,13 @@ const writeNewFileName = ({ oldPath, newFileName }) => {
 };
 
 const getDateFromEXIF = async (filePath) => {
-  let { DateTimeOriginal } = await exifr.parse(filePath);
+  const { DateTimeOriginal } = await exifr.parse(filePath);
   return parseDateString(DateTimeOriginal);
-}
+};
 
 const getDateFromLastModified = (stats) => {
-  return parseDateString(stats.mtime)
-}
+  return parseDateString(stats.mtime);
+};
 
 const parseDateString = (date) => {
   const year = date.getFullYear();
@@ -56,7 +56,7 @@ const parseDateString = (date) => {
   const seconds = leadingZero(date.getSeconds());
 
   return { year, month, day, hours, minutes, seconds };
-}
+};
 
 const getDateFromFileName = (file) => {
   console.log(`${file} being reformated`);
@@ -69,24 +69,24 @@ const getDateFromFileName = (file) => {
   const seconds = file.slice(17, 19);
 
   return { year, month, day, hours, minutes, seconds };
-}
+};
 
 const createNewFileName = async (pathToCurrentFile, file) => {
   let date;
 
   const pathToFile = filePath(pathToCurrentFile, file);
-  if (formatMethod === 'exif') {
-    date = await getDateFromEXIF(pathToFile)
-  } else if (formatMethod == 'reformat') {
+  if (formatMethod === "exif") {
+    date = await getDateFromEXIF(pathToFile);
+  } else if (formatMethod == "reformat") {
     date = getDateFromFileName(file);
   } else {
-    const stats = fs.statSync(pathToFile)
-    date = getDateFromLastModified(stats)
+    const stats = fs.statSync(pathToFile);
+    date = getDateFromLastModified(stats);
   }
 
   if (!validateDate(date)) return;
 
-  var fileEnding = file.slice(-3);
+  let fileEnding = file.slice(-3);
   if (fileEnding.toUpperCase() === "PEG") {
     fileEnding = file.slice(-4);
   }
@@ -113,15 +113,15 @@ const validateDate = ({ year, month, day, hours, minutes, seconds }) => {
     throw new Error("To short date");
   }
   return true;
-}
+};
 
 const fileNameFormat = (pathToCurrentFile, { year, month, day, hours, minutes, seconds }) => {
-  return `${pathToCurrentFile}\\${year}-${month}-${day} ${hours}.${minutes}.${seconds}`
-}
+  return `${pathToCurrentFile}\\${year}-${month}-${day} ${hours}.${minutes}.${seconds}`;
+};
 
 const filePath = (pathToCurrentFile, file) => {
   return `${pathToCurrentFile}\\${file}`;
-}
+};
 
 // Adding a leading 0, by slicing -2 we get the last 2 digits, so 020 becomes 20 and 02 stays 02.
 // also months are 0 indexed
