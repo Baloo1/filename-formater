@@ -5,7 +5,7 @@ const reformatFileName = process.argv[3] || false;
 var count = 0;
 
 console.time("startRenaming");
-const absolutePath = path.join(__dirname, imageDir).concat("\\");
+const absolutePath = path.join(__dirname, "../", imageDir).concat("\\");
 
 // read image directory
 const readFiles = () => {
