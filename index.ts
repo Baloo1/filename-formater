@@ -33,14 +33,36 @@ const readFilesInDirectory = async (pathToCurrentFile) => {
   }));
 };
 
+const fixDuplicateName = (newFileName) => {
+  const lastIndex = newFileName.lastIndexOf(".");
+  const name = newFileName.slice(0, lastIndex);
+  const fileEnding = newFileName.slice(lastIndex + 1);
+
+  let tempName = newFileName;
+  let fileNbr = 1;
+  while (fs.existsSync(tempName)) {
+    tempName = `${name} (${fileNbr}).${fileEnding}`;
+    fileNbr++;
+  }
+  return tempName;
+};
+
 const writeNewFileName = ({ oldPath, newFileName }) => {
-  fs.renameSync(oldPath, newFileName);
-  console.log(`File renamed from ${oldPath} to ${newFileName} successfully!`);
+  const name = fixDuplicateName(newFileName);
+  fs.renameSync(oldPath, name);
+  console.log(`File renamed from ${oldPath} to ${name} successfully!`);
 };
 
 const getDateFromEXIF = async (filePath) => {
-  const { DateTimeOriginal } = await exifr.parse(filePath);
-  return parseDateString(DateTimeOriginal);
+  const exifData = await exifr.parse(filePath);
+  if (!exifData) throw new Error(`Error: ${filePath} has undefined exif`);
+  if (!exifData.DateTimeOriginal) {
+    if (!exifData.CreateDate) {
+      throw new Error(`Error: ${filePath} has undefined exif`);
+    }
+    return parseDateString(exifData.CreateDate);
+  }
+  return parseDateString(exifData.DateTimeOriginal);
 };
 
 const getDateFromLastModified = (stats) => {
@@ -76,7 +98,11 @@ const createNewFileName = async (pathToCurrentFile, file) => {
 
   const pathToFile = filePath(pathToCurrentFile, file);
   if (formatMethod === "exif") {
-    date = await getDateFromEXIF(pathToFile);
+    try {
+      date = await getDateFromEXIF(pathToFile);
+    } catch (error) {
+      date = { year: "2000", month: "01", day: "01", hours: "00", minutes: "00", seconds: "00" };
+    }
   } else if (formatMethod == "reformat") {
     date = getDateFromFileName(file);
   } else {
@@ -91,14 +117,7 @@ const createNewFileName = async (pathToCurrentFile, file) => {
     fileEnding = file.slice(-4);
   }
 
-  let newFileName = `${fileNameFormat(pathToCurrentFile, date)}.${fileEnding}`;
-
-  let fileNbr = 1;
-  while (fs.existsSync(newFileName)) {
-    newFileName = `${fileNameFormat(pathToCurrentFile, date)} (${fileNbr}).${fileEnding}`;
-    fileNbr++;
-  }
-  return newFileName;
+  return `${fileNameFormat(pathToCurrentFile, date)}.${fileEnding}`;
 };
 
 const validateDate = ({ year, month, day, hours, minutes, seconds }) => {
